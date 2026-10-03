@@ -1,5 +1,7 @@
 const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
-
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE = "https://api.themoviedb.org/3";
+const TMDB_IMAGE = "https://image.tmdb.org/t/p/w500";
 const currentYear = new Date().getFullYear();
 const previousYear = currentYear - 1;
 
