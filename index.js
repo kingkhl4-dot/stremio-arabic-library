@@ -88,6 +88,28 @@ const manifest = {
     types: ["movie", "series"],
     catalogs
 };
+async function tmdb(path, params = {}) {
+    if (!TMDB_API_KEY) {
+        throw new Error("TMDB_API_KEY غير موجود");
+    }
+
+    const query = new URLSearchParams({
+        api_key: TMDB_API_KEY,
+        language: params.language || "ar-SA",
+        ...params
+    });
+
+    const response = await fetch(
+        `${TMDB_BASE}${path}?${query.toString()}`
+    );
+
+    if (!response.ok) {
+        throw new Error(`TMDB error ${response.status}`);
+    }
+
+    return response.json();
+}
+
 
 const builder = new addonBuilder(manifest);
 
