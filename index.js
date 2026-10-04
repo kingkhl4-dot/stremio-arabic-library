@@ -1,5 +1,6 @@
 const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMAGE = "https://image.tmdb.org/t/p/w500";
 const currentYear = new Date().getFullYear();
@@ -109,7 +110,42 @@ async function tmdb(path, params = {}) {
 
     return response.json();
 }
+async function translateWithGemini(text) {
+    if (!text || !GEMINI_API_KEY) {
+        return "";
+    }
 
+    try {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `ترجم وصف الفيلم أو المسلسل التالي إلى العربية الفصحى بشكل طبيعي ودقيق. لا تضف معلومات ولا تحذف أحداثًا ولا تكتب أي مقدمة أو ملاحظات. أعد الترجمة فقط:\n\n${text}`
+                        }]
+                    }]
+                })
+            }
+        );
+
+        if (!response.ok) {
+            return "";
+        }
+
+        const data = await response.json();
+
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+    } catch (error) {
+        console.error("Gemini translation error:", error);
+        return "";
+    }
+}
 
 const builder = new addonBuilder(manifest);
 function getCatalogSource(type, id) {
@@ -287,7 +323,18 @@ builder.defineMetaHandler(async (args) => {
                 .slice(0, 3)
                 .map(person => person.name)
             : [];
+let description = data.overview || "";
 
+if (!description) {
+    const englishData = await tmdb(
+        `/${mediaType}/${tmdbId}`,
+        { language: "en-US" }
+    );
+
+    if (englishData.overview) {
+        description = await translateWithGemini(englishData.overview);
+    }
+}
         const meta = {
             id: args.id,
             type: args.type,
@@ -307,9 +354,8 @@ builder.defineMetaHandler(async (args) => {
                 ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
                 : undefined,
 
-            description:
-                data.overview ||
-                "لا يوجد وصف عربي متوفر لهذا العمل",
+       description:
+    description || "لا يوجد وصف متوفر", 
 
             releaseInfo:
                 date ? date.substring(0, 4) : undefined,
