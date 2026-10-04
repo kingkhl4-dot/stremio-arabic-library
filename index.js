@@ -335,10 +335,41 @@ if (!description) {
         description = await translateWithGemini(englishData.overview);
     }
 }
+let videos = [];
+
+if (args.type === "series" && Array.isArray(data.seasons)) {
+    const seasons = data.seasons.filter(
+        season => season.season_number > 0
+    );
+
+    for (const season of seasons) {
+        const seasonData = await tmdb(
+            `/tv/${tmdbId}/season/${season.season_number}`,
+            { language: "ar-SA" }
+        );
+
+        for (const episode of seasonData.episodes || []) {
+            videos.push({
+                id: `${imdbId || args.id}:${season.season_number}:${episode.episode_number}`,
+                title: episode.name || `الحلقة ${episode.episode_number}`,
+                season: season.season_number,
+                episode: episode.episode_number,
+                released: episode.air_date
+                    ? new Date(`${episode.air_date}T00:00:00.000Z`)
+                    : undefined,
+                overview: episode.overview || undefined,
+                thumbnail: episode.still_path
+                    ? `${TMDB_IMAGE}${episode.still_path}`
+                    : undefined
+            });
+        }
+    }
+}
+        
         const meta = {
             id: imdbId || args.id,
             type: args.type,
-
+videos,
             name:
                 data.title ||
                 data.name ||
