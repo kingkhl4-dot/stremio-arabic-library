@@ -134,7 +134,7 @@ async function translateWithGemini(text) {
         );
 
         if (!response.ok) {
-            return "";
+            console.error("Gemini API error:", response.status, await response.text()); return "";
         }
 
         const data = await response.json();
