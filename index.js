@@ -301,7 +301,7 @@ builder.defineMetaHandler(async (args) => {
                 append_to_response: "external_ids,credits"
             }
         );
-
+const imdbId = data.external_ids?.imdb_id;
         const date =
             data.release_date ||
             data.first_air_date ||
@@ -336,7 +336,7 @@ if (!description) {
     }
 }
         const meta = {
-            id: args.id,
+            id: imdbId || args.id,
             type: args.type,
 
             name:
