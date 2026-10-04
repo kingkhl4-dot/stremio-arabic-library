@@ -367,7 +367,7 @@ if (args.type === "series" && Array.isArray(data.seasons)) {
 }
         
         const meta = {
-            id: imdbId || args.id,
+            id: args.id,
             type: args.type,
 videos,
             name:
