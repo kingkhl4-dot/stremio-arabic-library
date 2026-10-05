@@ -290,17 +290,49 @@ const wmData = await watchmode("/list-titles/", {
     limit: "20"
 });
 
-console.log("Netflix SA results:", wmData.titles?.length || 0);
-console.log("Netflix first item:", wmData.titles?.[0]);
-          const metas = (wmData.titles || []).map(item => ({
-    id: item.imdb_id || item.imdbId || item.id,
-    type: args.type,
-    name: item.title || item.name || "بدون عنوان",
-    poster: item.poster || item.poster_url || item.image_url,
-    description: item.overview || item.description || "لا يوجد وصف متوفر"
-})).filter(item => item.id && item.name);
 
-return { metas };
+ const metas = await Promise.all((wmData.titles || []).map(async (item) => {
+    try {
+        if (!item.tmdb_id) return null;
+
+        const mediaPath = args.type === "series"
+            ? `/tv/${item.tmdb_id}`
+            : `/movie/${item.tmdb_id}`;
+
+        let details = await tmdb(mediaPath, { language: "ar-SA" });
+
+        let description = details.overview || "";
+
+        if (!description) {
+            const english = await tmdb(mediaPath, { language: "en-US" });
+            description = english.overview
+                ? await translateWithGemini(english.overview)
+                : "";
+        }
+
+        return {
+            id: `tmdb:${item.tmdb_id}`,
+            type: args.type,
+            name: details.title || details.name || item.title || "بدون عنوان",
+            poster: details.poster_path
+                ? `${TMDB_IMAGE}${details.poster_path}`
+                : undefined,
+            description: description || "لا يوجد وصف متوفر",
+            releaseInfo: String(
+                details.release_date ||
+                details.first_air_date ||
+                ""
+            ).substring(0, 4)
+        };
+    } catch (error) {
+        console.error("Netflix TMDB error:", error);
+        return null;
+    }
+}));
+
+const metasFiltered = metas.filter(Boolean);         
+
+return { metas: metasFiltered };
       }
         const [path, params] = getCatalogSource(args.type, args.id);
         const skip = Number(args.extra?.skip || 0);
