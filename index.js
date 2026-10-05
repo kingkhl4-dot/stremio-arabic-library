@@ -290,7 +290,16 @@ const wmData = await watchmode("/list-titles/", {
 });
 
 console.log("Netflix SA results:", wmData.titles?.length || 0);
-return { metas: [] };
+console.log("Netflix first item:", wmData.titles?.[0]);
+          const metas = (wmData.titles || []).map(item => ({
+    id: item.imdb_id || item.imdbId || item.id,
+    type: args.type,
+    name: item.title || item.name || "بدون عنوان",
+    poster: item.poster || item.poster_url || item.image_url,
+    description: item.overview || item.description || "لا يوجد وصف متوفر"
+})).filter(item => item.id && item.name);
+
+return { metas };
       }
         const [path, params] = getCatalogSource(args.type, args.id);
         const skip = Number(args.extra?.skip || 0);
