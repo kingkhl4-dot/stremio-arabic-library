@@ -281,7 +281,7 @@ builder.defineCatalogHandler(async (args) => {
 const page = Math.floor(skip / 20) + 1;
 
 const wmData = await watchmode("/list-titles/", {
-    regions: "SA",
+    regions: "AE",
     source_ids: "203",
     types: args.type === "series" ? "tv_series" : "movie",
     source_types: "sub",
