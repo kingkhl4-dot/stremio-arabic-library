@@ -130,6 +130,7 @@ async function watchmode(path, params = {}) {
     );
 
     if (!response.ok) {
+     console.error("Watchmode response:", response.status, await response.text());
         throw new Error(`Watchmode error ${response.status}`);
     }
 
