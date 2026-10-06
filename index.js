@@ -1,7 +1,7 @@
 const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const WATCHMODE_API_KEY = process.env.WATCHMODE_API_KEY;
+
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMAGE = "https://image.tmdb.org/t/p/w500";
 const currentYear = new Date().getFullYear();
@@ -20,9 +20,7 @@ const catalogs = [
     { type: "movie", id: "new_movies", name: "🆕 أفلام جديدة" },
     { type: "series", id: "new_series", name: "🆕 مسلسلات جديدة" },
 
-    // 🔴 نتفلكس
-{ type: "movie", id: "netflix_movies", name: "🔴 أفلام نتفلكس" },
-{ type: "series", id: "netflix_series", name: "🔴 مسلسلات نتفلكس" },
+    
 
     // ⚡ أكشن
     { type: "movie", id: "action_movies", name: "⚡ أفلام أكشن" },
@@ -115,27 +113,7 @@ async function tmdb(path, params = {}) {
 
     return response.json();
 }
-async function watchmode(path, params = {}) {
-    if (!WATCHMODE_API_KEY) {
-        throw new Error("WATCHMODE_API_KEY غير موجود");
-    }
 
-    const query = new URLSearchParams({
-        apiKey: WATCHMODE_API_KEY,
-        ...params
-    });
-
-    const response = await fetch(
-        `https://api.watchmode.com/v1${path}?${query.toString()}`
-    );
-
-    if (!response.ok) {
-     console.error("Watchmode response:", response.status, await response.text());
-        throw new Error(`Watchmode error ${response.status}`);
-    }
-
-    return response.json();
-}
 
 async function translateWithGemini(text) {
     if (!text || !GEMINI_API_KEY) {
@@ -179,8 +157,7 @@ function getCatalogSource(type, id) {
     const mediaType = type === "series" ? "tv" : "movie";
 
     const sources = {
-  netflix_movies: null,
-netflix_series: null,
+  
         
         featured_movies: ["/movie/top_rated", {}],
         featured_series: ["/tv/top_rated", {}],
@@ -276,64 +253,7 @@ netflix_series: null,
 
 builder.defineCatalogHandler(async (args) => {
     try {
-      if (args.id === "netflix_movies" || args.id === "netflix_series") {
-    const skip = Number(args.extra?.skip || 0);
-const page = Math.floor(skip / 20) + 1;
-
-const wmData = await watchmode("/list-titles/", {
-    regions: "AE",
-    source_ids: "203",
-    types: args.type === "series" ? "tv_series" : "movie",
-    source_types: "sub",
-    sort_by: "popularity_desc",
-    page,
-    limit: "20"
-});
-
-
- const metas = await Promise.all((wmData.titles || []).map(async (item) => {
-    try {
-        if (!item.tmdb_id) return null;
-
-        const mediaPath = args.type === "series"
-            ? `/tv/${item.tmdb_id}`
-            : `/movie/${item.tmdb_id}`;
-
-        let details = await tmdb(mediaPath, { language: "ar-SA" });
-
-        let description = details.overview || "";
-
-        if (!description) {
-            const english = await tmdb(mediaPath, { language: "en-US" });
-            description = english.overview
-                ? await translateWithGemini(english.overview)
-                : "";
-        }
-
-        return {
-            id: `tmdb:${item.tmdb_id}`,
-            type: args.type,
-            name: details.title || details.name || item.title || "بدون عنوان",
-            poster: details.poster_path
-                ? `${TMDB_IMAGE}${details.poster_path}`
-                : undefined,
-            description: description || "لا يوجد وصف متوفر",
-            releaseInfo: String(
-                details.release_date ||
-                details.first_air_date ||
-                ""
-            ).substring(0, 4)
-        };
-    } catch (error) {
-        console.error("Netflix TMDB error:", error);
-        return null;
-    }
-}));
-
-const metasFiltered = metas.filter(Boolean);         
-
-return { metas: metasFiltered };
-      }
+      
         const [path, params] = getCatalogSource(args.type, args.id);
         const skip = Number(args.extra?.skip || 0);
         const page = Math.floor(skip / 20) + 1;
